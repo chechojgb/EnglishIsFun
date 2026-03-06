@@ -45,23 +45,47 @@ export default function HeroSection() {
       </div>
 
       {/* RIGHT — Spline */}
-      <div className="reveal lg:col-span-7 relative w-full">
+      <div className="reveal lg:col-span-7 relative w-full mt-10 lg:mt-0">
+        {/* Glow de fondo */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-[85%] bg-pink-200/25 blur-[90px] rounded-full -z-10" />
 
-        <div className="relative w-full aspect-[16/10] bg-white p-3 rounded-[56px] shadow-[0_50px_100px_rgba(0,0,0,0.07)] border border-white/50 overflow-hidden">
-          <div className="w-full h-full bg-[#FFF5F5] rounded-[44px] overflow-hidden relative border-2 border-pink-50">
-            <Spline scene="https://prod.spline.design/DgKgiKyhZBuzqbRv/scene.splinecode" />
+        {/* CONTENEDOR AJUSTADO: 
+            - aspect-[4/5] en móvil (más alto para que no se vea espichado)
+            - aspect-[16/10] en desktop
+        */}
+        <div className="relative w-full aspect-[4/5] md:aspect-[16/10] bg-white p-2 md:p-3 rounded-[40px] md:rounded-[56px] shadow-[0_50px_100px_rgba(0,0,0,0.07)] border border-white/50">
+          
+          <div className="w-full h-full bg-[#FFF5F5] rounded-[32px] md:rounded-[44px] overflow-hidden relative border-2 border-pink-50">
+            
+            {/* Spline ahora llenará el contenedor que definimos arriba */}
+            <Spline 
+              scene="https://prod.spline.design/DgKgiKyhZBuzqbRv/scene.splinecode" 
+              className="w-full h-full"
+            />
 
-            <div className="absolute bottom-4 left-5 right-5 flex justify-between items-end pointer-events-none">
-              <div className="bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-lg border border-white flex items-center gap-2">
+            {/* OVERLAYS ACTUALIZADOS */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 flex justify-between items-end pointer-events-none">
+              
+              {/* Etiqueta Interactive (Se queda a la izquierda) */}
+              <div className="bg-white/90 backdrop-blur-md px-3 py-2 md:px-4 md:py-2.5 rounded-xl md:rounded-2xl shadow-lg border border-white flex items-center gap-2 self-end mb-1 md:mb-0">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="font-black text-gray-700 uppercase text-[10px] tracking-widest">Interactive</span>
+                <span className="font-black text-gray-700 uppercase text-[8px] md:text-[10px] tracking-widest">Interactive</span>
               </div>
-              <div className="bg-gray-900 text-white px-5 py-3.5 rounded-[1.5rem] shadow-2xl">
-                <div className="text-[9px] uppercase font-black opacity-40 tracking-tighter">just do it</div>
-                <div className="font-bold text-sm">Words are Magic Keys</div>
+
+              {/* Card Negra (Ahora a la derecha para tapar el logo de Spline) */}
+              <div className="relative group">
+                {/* Este div vacío opcional bloquea clicks en el logo de spline si fuera necesario */}
+                <div className="absolute inset-0 z-10 pointer-events-auto" /> 
+                
+                <div className="bg-gray-900 text-white px-4 py-3 md:px-6 md:py-4 rounded-2xl md:rounded-[1.8rem] shadow-2xl relative z-20 pointer-events-auto min-w-[140px] md:min-w-[180px]">
+                  <div className="text-[7px] md:text-[9px] uppercase font-black opacity-40 tracking-tighter mb-0.5">just do it</div>
+                  <div className="font-bold text-xs md:text-sm whitespace-nowrap leading-tight">
+                    Words are <br className="md:hidden" /> Magic Keys
+                  </div>
+                </div>
               </div>
             </div>
+
           </div>
         </div>
       </div>

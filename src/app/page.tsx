@@ -23,7 +23,7 @@ export default function LandingPage() {
       <Navbar />
       <HeroSection />
       <TopicsSection />
-      <CtaSection />
+      {/* <CtaSection /> */}
     </main>
   );
 }
