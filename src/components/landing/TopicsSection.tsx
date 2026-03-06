@@ -9,28 +9,28 @@ const TOPICS = [
     title: 'Numbers',
     desc: 'Count, add and play with numbers in fun mini-games.',
     color: 'bg-orange-50', text: 'text-orange-500', border: 'hover:border-orange-200',
-    href: '/games/numbers'
+    href: '/games'
   },
   {
     icon: <MessageCircle size={28} />,
     title: 'Verb to Be',
     desc: 'Master am, is and are through stories and challenges.',
     color: 'bg-blue-50', text: 'text-blue-500', border: 'hover:border-blue-200',
-    href: '/games/verbToBe'
+    href: '/games'
   },
   {
     icon: <Home size={28} />,
     title: 'Family',
     desc: 'Learn every family word by building your own tree.',
     color: 'bg-pink-50', text: 'text-pink-500', border: 'hover:border-pink-200',
-    href: '/games/family'
+    href: '/games'
   },
   {
     icon: <BookOpen size={28} />,
     title: 'Alphabet',
     desc: 'Explore vowels and letters through islands and adventures.',
     color: 'bg-purple-50', text: 'text-purple-500', border: 'hover:border-purple-200',
-    href: '/games/alphabet'
+    href: '/games'
   },
 ];
 
