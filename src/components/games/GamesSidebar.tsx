@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { animate, stagger, createDrawable } from 'animejs';
-import { Hash, MessageCircle, Home, BookOpen, ChevronLeft, ChevronDown, Star, Menu, LayoutDashboard } from 'lucide-react';
+import { Hash, MessageCircle, Home, BookOpen, ChevronLeft, ChevronDown, Star, Menu, LayoutDashboard, TentTree} from 'lucide-react';
 
 interface GameItem { id: string; name: string; }
 interface Theme { title: string; icon: React.ReactNode; games: GameItem[]; }
@@ -17,6 +17,7 @@ export default function GamesSidebar() {
     { title: 'Numbers', icon: <Hash size={18} />, games: [{ id: '/numbers/ballonPop', name: 'ballon Pop' }/*, { id: '/numbers/math-magic', name: 'Math Magic' }*/] },
     // { title: 'Verb to Be', icon: <MessageCircle size={18} />, games: [{ id: '/verbToBe/am-is-are', name: 'Am, Is, Are?' }, { id: '/verbToBe/be-hero', name: 'Be a Hero' }] },
     { title: 'Family', icon: <Home size={18} />, games: [{ id: '/family/family-tree', name: 'My Family Tree' }/*, { id: '/family/who-is-who', name: 'Who is Who?' }*/]},
+    { title: 'Holidays', icon: <TentTree size={18} />, games: [{ id: '/holiday/StPatrick', name: "St. Patrick's" }, { id: '/holiday/drapydrop', name: "drag & drop" }, { id: '/holiday/spelling', name: "spelling" }]},
     // { title: 'Vocals & Alphabet', icon: <BookOpen size={18} />, games: [{ id: '/alphabet/vocal-islands', name: 'Vocal Islands' }, { id: '/alphabet/abc-adventure', name: 'ABC Adventure' }] },
   ];
 
