@@ -2,9 +2,8 @@
 
 import { useState, useRef, useCallback } from "react";
 import Image from "next/image";
-import { Clover} from 'lucide-react';
+import { Clover } from "lucide-react";
 
-// ── Types ──────────────────────────────────────────────
 interface Pair {
   id: string;
   img: string;
@@ -12,10 +11,9 @@ interface Pair {
 }
 
 interface DropZoneState {
-  [pairId: string]: string | null; // pairId → word dropped (or null)
+  [pairId: string]: string | null;
 }
 
-// ── Data ───────────────────────────────────────────────
 const PAIRS: Pair[] = [
   { id: "leprechaun", img: "/images/holidays/elf.png",      word: "Leprechaun"  },
   { id: "pot",        img: "/images/holidays/gold-pot.png", word: "Pot of Gold" },
@@ -31,29 +29,60 @@ function shuffle<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
-// ── Component ──────────────────────────────────────────
 export default function MatchGame() {
-  const [wordBank, setWordBank]     = useState<string[]>(() => shuffle(PAIRS.map((p) => p.word)));
-  const [dropped, setDropped]       = useState<DropZoneState>({});
-  const [checked, setChecked]       = useState(false);
-  const [dragWord, setDragWord]     = useState<string | null>(null);
-  const [dragFrom, setDragFrom]     = useState<string | null>(null); // "bank" | pairId
-  const [overZone, setOverZone]     = useState<string | null>(null);
-  const dragRef                     = useRef<string | null>(null);
+  const [wordBank, setWordBank] = useState<string[]>(() => shuffle(PAIRS.map((p) => p.word)));
+  const [dropped, setDropped]   = useState<DropZoneState>({});
+  const [checked, setChecked]   = useState(false);
 
-  // ── Touch drag state ───────────────────────────────
-  const touchWordRef  = useRef<string | null>(null);
-  const touchFromRef  = useRef<string | null>(null);
-  const ghostRef      = useRef<HTMLDivElement | null>(null);
+  // ── Drag state ─────────────────────────────────────
+  const [dragWord, setDragWord] = useState<string | null>(null);
+  const [dragFrom, setDragFrom] = useState<string | null>(null);
+  const [overZone, setOverZone] = useState<string | null>(null);
+  const dragRef                 = useRef<string | null>(null);
+
+  // ── Click-to-select state ──────────────────────────
+  const [selected, setSelected] = useState<string | null>(null);       // word being held
+  const [selectedFrom, setSelectedFrom] = useState<string | null>(null); // "bank" | pairId
+
+  // ── Touch state ────────────────────────────────────
+  const touchWordRef = useRef<string | null>(null);
+  const touchFromRef = useRef<string | null>(null);
+  const ghostRef     = useRef<HTMLDivElement | null>(null);
+  const didDragRef   = useRef(false); // distinguish tap vs drag on touch
 
   const totalDropped = Object.values(dropped).filter(Boolean).length;
   const allPlaced    = totalDropped === PAIRS.length;
+  const correctCount = checked ? PAIRS.filter((p) => dropped[p.id] === p.word).length : 0;
 
-  const correctCount = checked
-    ? PAIRS.filter((p) => dropped[p.id] === p.word).length
-    : 0;
+  // ── Helpers ────────────────────────────────────────
+  const placeWord = useCallback(
+    (word: string, from: string | null, targetZone: string) => {
+      setDropped((prev) => {
+        const existing = prev[targetZone];
+        const next = { ...prev, [targetZone]: word };
+        // displaced word goes back to bank
+        if (existing && existing !== word) {
+          setWordBank((wb) => [...wb.filter((w) => w !== word), existing]);
+        } else {
+          setWordBank((wb) => wb.filter((w) => w !== word));
+        }
+        // clear origin zone if came from another zone
+        if (from && from !== "bank" && from !== targetZone) {
+          next[from] = null;
+        }
+        return next;
+      });
+    },
+    []
+  );
 
-  // ── Reset ──────────────────────────────────────────
+  const returnToBank = useCallback((word: string, from: string | null) => {
+    if (from && from !== "bank") {
+      setDropped((prev) => ({ ...prev, [from]: null }));
+      setWordBank((wb) => [...wb, word]);
+    }
+  }, []);
+
   const reset = useCallback(() => {
     setWordBank(shuffle(PAIRS.map((p) => p.word)));
     setDropped({});
@@ -61,10 +90,42 @@ export default function MatchGame() {
     setDragWord(null);
     setDragFrom(null);
     setOverZone(null);
+    setSelected(null);
+    setSelectedFrom(null);
   }, []);
 
-  // ── Drag handlers (mouse) ──────────────────────────
+  // ── Click-to-select logic ──────────────────────────
+  const handleClickWord = (word: string, from: string) => {
+    if (checked) return;
+    if (selected === word && selectedFrom === from) {
+      // deselect
+      setSelected(null);
+      setSelectedFrom(null);
+    } else {
+      setSelected(word);
+      setSelectedFrom(from);
+    }
+  };
+
+  const handleClickZone = (pairId: string) => {
+    if (checked) return;
+    if (selected) {
+      // place selected word into this zone
+      placeWord(selected, selectedFrom, pairId);
+      setSelected(null);
+      setSelectedFrom(null);
+    } else if (dropped[pairId]) {
+      // pick up the word already in this zone
+      setSelected(dropped[pairId]);
+      setSelectedFrom(pairId);
+    }
+  };
+
+  // ── Mouse drag handlers ────────────────────────────
   const onDragStartWord = (word: string, from: string) => {
+    // clear click-selection when starting a drag
+    setSelected(null);
+    setSelectedFrom(null);
     setDragWord(word);
     setDragFrom(from);
     dragRef.current = word;
@@ -72,24 +133,7 @@ export default function MatchGame() {
 
   const onDropZone = (pairId: string) => {
     if (!dragRef.current) return;
-    const word = dragRef.current;
-
-    // If dropping onto a zone that already has a word, send it back to bank
-    setDropped((prev) => {
-      const existing = prev[pairId];
-      const next = { ...prev, [pairId]: word };
-      if (existing) {
-        setWordBank((wb) => [...wb.filter((w) => w !== word), existing]);
-      } else {
-        setWordBank((wb) => wb.filter((w) => w !== word));
-      }
-      // If came from another zone, clear that zone
-      if (dragFrom && dragFrom !== "bank" && dragFrom !== pairId) {
-        next[dragFrom] = null;
-      }
-      return next;
-    });
-
+    placeWord(dragRef.current, dragFrom, pairId);
     setDragWord(null);
     setDragFrom(null);
     setOverZone(null);
@@ -104,12 +148,7 @@ export default function MatchGame() {
       dragRef.current = null;
       return;
     }
-    const word = dragRef.current;
-    // Return word to bank, clear its zone
-    if (dragFrom && dragFrom !== "bank") {
-      setDropped((prev) => ({ ...prev, [dragFrom]: null }));
-      setWordBank((wb) => [...wb, word]);
-    }
+    returnToBank(dragRef.current, dragFrom);
     setDragWord(null);
     setDragFrom(null);
     setOverZone(null);
@@ -121,16 +160,16 @@ export default function MatchGame() {
     const el = document.createElement("div");
     el.innerText = word;
     el.style.cssText = `
-      position: fixed; z-index: 9999; pointer-events: none;
-      background: #4caf72; color: white; font-weight: 800;
-      padding: 6px 14px; border-radius: 99px; font-size: 0.85rem;
-      font-family: 'Nunito', sans-serif;
-      transform: translate(-50%, -50%);
-      left: ${x}px; top: ${y}px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      position:fixed;z-index:9999;pointer-events:none;
+      background:#4caf72;color:white;font-weight:800;
+      padding:6px 14px;border-radius:99px;font-size:0.85rem;
+      font-family:'Nunito',sans-serif;
+      transform:translate(-50%,-50%);
+      left:${x}px;top:${y}px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.2);
     `;
     document.body.appendChild(el);
-    ghostRef.current = el;
+    ghostRef.current = el as unknown as HTMLDivElement;
   };
 
   const moveGhost = (x: number, y: number) => {
@@ -149,6 +188,7 @@ export default function MatchGame() {
 
   const onTouchStart = (word: string, from: string, e: React.TouchEvent) => {
     e.preventDefault();
+    didDragRef.current = false;
     touchWordRef.current = word;
     touchFromRef.current = from;
     const t = e.touches[0];
@@ -157,9 +197,9 @@ export default function MatchGame() {
 
   const onTouchMove = (e: React.TouchEvent) => {
     e.preventDefault();
+    didDragRef.current = true;
     const t = e.touches[0];
     moveGhost(t.clientX, t.clientY);
-    // Detect which drop zone we're over
     const el = document.elementFromPoint(t.clientX, t.clientY);
     const zone = el?.closest("[data-dropzone]")?.getAttribute("data-dropzone");
     setOverZone(zone ?? null);
@@ -174,6 +214,16 @@ export default function MatchGame() {
     const from = touchFromRef.current;
     if (!word) return;
 
+    if (!didDragRef.current) {
+      // It was a tap — use click-to-select logic
+      handleClickWord(word, from!);
+      touchWordRef.current = null;
+      touchFromRef.current = null;
+      setOverZone(null);
+      return;
+    }
+
+    // It was a real drag
     const el = document.elementFromPoint(t.clientX, t.clientY);
     const zone = el?.closest("[data-dropzone]")?.getAttribute("data-dropzone");
 
@@ -182,9 +232,7 @@ export default function MatchGame() {
       setDragFrom(from);
       onDropZone(zone);
     } else if (from && from !== "bank") {
-      // Return to bank
-      setDropped((prev) => ({ ...prev, [from]: null }));
-      setWordBank((wb) => [...wb, word]);
+      returnToBank(word, from);
     }
 
     touchWordRef.current = null;
@@ -192,32 +240,22 @@ export default function MatchGame() {
     setOverZone(null);
   };
 
-  // ── Result color ───────────────────────────────────
   const zoneColor = (pairId: string) => {
     if (!checked || !dropped[pairId]) return null;
-    return dropped[pairId] === PAIRS.find((p) => p.id === pairId)?.word
-      ? "correct"
-      : "wrong";
+    return dropped[pairId] === PAIRS.find((p) => p.id === pairId)?.word ? "correct" : "wrong";
   };
 
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@700;800&display=swap');
-
-        @keyframes fadeUp {
-          from { opacity:0; transform:translateY(16px); }
-          to   { opacity:1; transform:translateY(0); }
-        }
-        @keyframes popIn {
-          0%   { transform:scale(0.85); opacity:0; }
-          70%  { transform:scale(1.06); }
-          100% { transform:scale(1);    opacity:1; }
-        }
-        .fade-up  { animation: fadeUp 0.4s ease forwards; }
-        .pop-in   { animation: popIn  0.3s ease forwards; }
-
-        [draggable=true] { cursor: grab; }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes popIn  { 0%{transform:scale(0.85);opacity:0} 70%{transform:scale(1.06)} 100%{transform:scale(1);opacity:1} }
+        @keyframes selectedPulse { 0%,100%{box-shadow:0 0 0 3px #4caf72} 50%{box-shadow:0 0 0 6px #a8e6bc} }
+        .fade-up        { animation: fadeUp 0.4s ease forwards; }
+        .pop-in         { animation: popIn  0.3s ease forwards; }
+        .selected-pulse { animation: selectedPulse 1s ease infinite; }
+        [draggable=true]        { cursor: grab; }
         [draggable=true]:active { cursor: grabbing; }
       `}</style>
 
@@ -228,13 +266,13 @@ export default function MatchGame() {
         {/* Title */}
         <div className="text-center">
           <h1
-            className="text-4xl sm:text-5xl font-extrabold leading-tight"
+            className="flex items-center justify-center gap-2 text-4xl sm:text-5xl font-extrabold leading-tight"
             style={{ fontFamily: "'Baloo 2', cursive", color: "#2d7a4f" }}
           >
-            <Clover className="inline-flex align-middle mr-2"/> Match It!
+            <Clover className="w-9 h-9" /> Match It!
           </h1>
           <p className="mt-1 font-bold text-sm" style={{ color: "#5a9e76" }}>
-            Drag each word to the right picture
+            Drag or tap a word, then tap a picture!
           </p>
         </div>
 
@@ -243,10 +281,28 @@ export default function MatchGame() {
           className="flex items-center gap-2 px-4 py-1.5 rounded-full font-extrabold text-sm"
           style={{ background: "#d6f0e0", color: "#2d7a4f" }}
         >
-          <Clover/> {totalDropped} / {PAIRS.length} placed
+          <Clover className="w-4 h-4" /> {totalDropped} / {PAIRS.length} placed
         </div>
 
-        {/* ── Word bank ── */}
+        {/* Selected word indicator */}
+        <div
+          className="flex items-center gap-2 px-4 py-2 rounded-full font-extrabold text-sm transition-all duration-300"
+          style={{
+            background: selected ? "#4caf72" : "#e2f5e9",
+            color: selected ? "#fff" : "#8fcfa5",
+            border: selected ? "2px solid #3d9460" : "2px dashed #8fcfa5",
+            minWidth: 160,
+            justifyContent: "center",
+          }}
+        >
+          {selected ? (
+            <>✋ &nbsp;"{selected}" selected — tap a picture!</>
+          ) : (
+            <>tap or drag a word</>
+          )}
+        </div>
+
+        {/* Word bank */}
         <div
           data-dropzone="bank"
           onDragOver={(e) => e.preventDefault()}
@@ -262,33 +318,42 @@ export default function MatchGame() {
               All words placed!
             </span>
           )}
-          {wordBank.map((word) => (
-            <div
-              key={word}
-              draggable
-              onDragStart={() => onDragStartWord(word, "bank")}
-              onDragEnd={() => { setDragWord(null); setDragFrom(null); }}
-              onTouchStart={(e) => onTouchStart(word, "bank", e)}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
-              className="pop-in px-4 py-1.5 rounded-full font-extrabold text-sm select-none transition-transform active:scale-95"
-              style={{
-                background: "#4caf72",
-                color: "#fff",
-                boxShadow: "0 2px 6px rgba(76,175,114,0.35)",
-                opacity: dragWord === word && dragFrom === "bank" ? 0.35 : 1,
-              }}
-            >
-              {word}
-            </div>
-          ))}
+          {wordBank.map((word) => {
+            const isSelected = selected === word && selectedFrom === "bank";
+            return (
+              <div
+                key={word}
+                draggable
+                onDragStart={() => onDragStartWord(word, "bank")}
+                onDragEnd={() => { setDragWord(null); setDragFrom(null); }}
+                onTouchStart={(e) => onTouchStart(word, "bank", e)}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+                onClick={() => handleClickWord(word, "bank")}
+                className={`pop-in px-4 py-1.5 rounded-full font-extrabold text-sm select-none transition-all active:scale-95 ${isSelected ? "selected-pulse" : ""}`}
+                style={{
+                  background: isSelected ? "#2d7a4f" : "#4caf72",
+                  color: "#fff",
+                  boxShadow: isSelected
+                    ? "0 0 0 3px #a8e6bc"
+                    : "0 2px 6px rgba(76,175,114,0.35)",
+                  opacity: dragWord === word && dragFrom === "bank" ? 0.35 : 1,
+                  transform: isSelected ? "scale(1.08)" : "scale(1)",
+                  cursor: "pointer",
+                }}
+              >
+                {isSelected ? "✋ " : ""}{word}
+              </div>
+            );
+          })}
         </div>
 
-        {/* ── Image grid ── */}
+        {/* Image grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-2xl">
           {PAIRS.map((pair) => {
-            const result = zoneColor(pair.id);
-            const placedWord = dropped[pair.id];
+            const result      = zoneColor(pair.id);
+            const placedWord  = dropped[pair.id];
+            const isZoneReady = !!selected && !checked; // highlight zones when a word is selected
 
             return (
               <div key={pair.id} className="flex flex-col items-center gap-2">
@@ -316,21 +381,26 @@ export default function MatchGame() {
                   onDragOver={(e) => { e.preventDefault(); setOverZone(pair.id); }}
                   onDragLeave={() => setOverZone(null)}
                   onDrop={() => onDropZone(pair.id)}
+                  onClick={() => handleClickZone(pair.id)}
                   className="w-full min-h-[38px] rounded-xl flex items-center justify-center transition-all"
                   style={{
                     background:
-                      result === "correct" ? "#d6f5e0" :
-                      result === "wrong"   ? "#fde8e8" :
-                      overZone === pair.id ? "#c8ead5" :
-                      placedWord           ? "#e2f5e9" :
-                                             "#fff",
+                      result === "correct"  ? "#d6f5e0" :
+                      result === "wrong"    ? "#fde8e8" :
+                      overZone === pair.id  ? "#c8ead5" :
+                      isZoneReady && !placedWord ? "#ddf5e8" :
+                      placedWord            ? "#e2f5e9" :
+                                              "#fff",
                     border: `2px ${placedWord || overZone === pair.id ? "solid" : "dashed"} ${
-                      result === "correct" ? "#4caf72" :
-                      result === "wrong"   ? "#e57373" :
-                      overZone === pair.id ? "#4caf72" :
-                      placedWord           ? "#8fcfa5" :
-                                             "#b6dfc4"
+                      result === "correct"  ? "#4caf72" :
+                      result === "wrong"    ? "#e57373" :
+                      overZone === pair.id  ? "#4caf72" :
+                      isZoneReady && !placedWord ? "#4caf72" :
+                      placedWord            ? "#8fcfa5" :
+                                              "#b6dfc4"
                     }`,
+                    cursor: isZoneReady || placedWord ? "pointer" : "default",
+                    transform: isZoneReady && !placedWord ? "scale(1.03)" : "scale(1)",
                   }}
                 >
                   {placedWord ? (
@@ -341,14 +411,18 @@ export default function MatchGame() {
                       onTouchStart={(e) => !checked && onTouchStart(placedWord, pair.id, e)}
                       onTouchMove={onTouchMove}
                       onTouchEnd={onTouchEnd}
-                      className="px-3 py-1 rounded-lg font-extrabold text-xs flex items-center gap-1 select-none"
+                      onClick={(e) => { e.stopPropagation(); !checked && handleClickWord(placedWord, pair.id); }}
+                      className={`px-3 py-1 rounded-lg font-extrabold text-xs flex items-center gap-1 select-none ${
+                        selected === placedWord && selectedFrom === pair.id ? "selected-pulse" : ""
+                      }`}
                       style={{
                         background:
                           result === "correct" ? "#4caf72" :
                           result === "wrong"   ? "#e57373" :
+                          selected === placedWord && selectedFrom === pair.id ? "#2d7a4f" :
                           "#4caf72",
                         color: "#fff",
-                        cursor: checked ? "default" : "grab",
+                        cursor: checked ? "default" : "pointer",
                       }}
                     >
                       {result === "correct" && <span>✓</span>}
@@ -356,8 +430,11 @@ export default function MatchGame() {
                       {placedWord}
                     </div>
                   ) : (
-                    <span className="text-xs font-bold" style={{ color: "#b6dfc4" }}>
-                      drop here
+                    <span
+                      className="text-xs font-bold transition-all"
+                      style={{ color: isZoneReady ? "#4caf72" : "#b6dfc4" }}
+                    >
+                      {isZoneReady ? "tap here!" : "drop here"}
                     </span>
                   )}
                 </div>
@@ -366,7 +443,7 @@ export default function MatchGame() {
           })}
         </div>
 
-        {/* ── Check / Result ── */}
+        {/* Check / Result */}
         {!checked ? (
           <button
             onClick={() => allPlaced && setChecked(true)}
