@@ -3,13 +3,20 @@
 import { useState, useEffect, useRef } from "react";
 
 // ─── DATA ────────────────────────────────────────────────────────────────────
+function CharImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  const isPath = src.startsWith("/") || src.startsWith("http");
+  if (isPath) {
+    return <img src={src} alt={alt} className={className ?? "w-10 h-10 object-contain"} />;
+  }
+  return <span className={`text-5xl ${className ?? ""}`}>{src}</span>;
+}
 
 const CHARACTERS = [
-  { id: "luna",  name: "Luna",  emoji: "🐱", color: "#FF6B9D" },
-  { id: "bolt",  name: "Bolt",  emoji: "🐶", color: "#4ECDC4" },
-  { id: "max",   name: "Max",   emoji: "🦊", color: "#FFB347" },
-  { id: "daisy", name: "Daisy", emoji: "🐰", color: "#A78BFA" },
-  { id: "rocky", name: "Rocky", emoji: "🐻", color: "#6EE7B7" },
+  { id: "luna",  name: "Luna",  emoji: "/images/possessive/cat.png", color: "#FF6B9D" },
+  { id: "bolt",  name: "Bolt",  emoji: "/images/possessive/happy.png", color: "#4ECDC4" },
+  { id: "max",   name: "Max",   emoji: "/images/possessive/fox.png", color: "#FFB347" },
+  { id: "daisy", name: "Daisy", emoji: "/images/possessive/rabbit.png", color: "#A78BFA" },
+  { id: "rocky", name: "Rocky", emoji: "/images/possessive/bear.png", color: "#6EE7B7" },
 ];
 
 const ITEMS = ["ball", "hat", "book", "bag", "toy", "shoe", "pencil", "cake", "bike", "drum"];
@@ -112,24 +119,16 @@ function MenuScreen({ onMode }: { onMode: (m: Mode) => void }) {
 
       {/* Buttons */}
       <div className="flex flex-col gap-4 w-full max-w-xs">
-        <MenuBtn emoji="📚" label="Learn It First!" color="#6EE7B7" text="#065F46" onClick={() => onMode("learn")} />
-        <MenuBtn emoji="🎯" label="Quiz Time!" color="#FDE68A" text="#92400E" onClick={() => onMode("quiz")} />
-        <MenuBtn emoji="🔨" label="Build a Sentence!" color="#C4B5FD" text="#3730A3" onClick={() => onMode("build")} />
+        <MenuBtn emoji="/images/possessive/stack-of-books.png" label="Learn It First!" color="#6EE7B7" text="#065F46" onClick={() => onMode("learn")} />
+        <MenuBtn emoji="/images/possessive/target.png" label="Quiz Time!" color="#FDE68A" text="#92400E" onClick={() => onMode("quiz")} />
+        <MenuBtn emoji="/images/possessive/hammer.png" label="Build a Sentence!" color="#C4B5FD" text="#3730A3" onClick={() => onMode("build")} />
       </div>
 
       {/* Characters parade */}
       <div className="flex gap-3 text-4xl">
         {CHARACTERS.map((c, i) => (
-          <span
-            key={c.id}
-            className="inline-block"
-            style={{
-              animation: `float 2s ease-in-out infinite`,
-              animationDelay: `${i * 0.3}s`,
-            }}
-          >
-            {c.emoji}
-          </span>
+
+          <CharImage src={c.emoji} alt={c.name} className="w-12 h-12 object-contain" />
         ))}
       </div>
     </div>
@@ -143,7 +142,8 @@ function MenuBtn({ emoji, label, color, text, onClick }: { emoji: string; label:
       className="w-full py-4 px-6 rounded-2xl font-black text-xl flex items-center gap-3 shadow-lg active:scale-95 transition-transform"
       style={{ background: color, color: text, fontFamily: "'Fredoka One', cursive", boxShadow: `0 6px 0 ${color}99` }}
     >
-      <span className="text-3xl">{emoji}</span>
+      
+      <CharImage src={emoji} alt={emoji} className="w-12 h-12 object-contain" />
       {label}
     </button>
   );
@@ -169,7 +169,7 @@ const LEARN_SLIDES = [
   },
   {
     title: "Luna's ball ⚽",
-    emoji: "🐱",
+    emoji: "/images/possessive/cat.png",
     content: "This ball belongs to Luna. So we say:",
     example: "Luna's ball",
     bg: "from-pink-100 to-rose-100",
@@ -177,7 +177,7 @@ const LEARN_SLIDES = [
   },
   {
     title: "Bolt's hat 🎩",
-    emoji: "🐶",
+    emoji: "/images/possessive/happy.png",
     content: "This hat belongs to Bolt. So we say:",
     example: "Bolt's hat",
     bg: "from-teal-100 to-cyan-100",
@@ -185,11 +185,11 @@ const LEARN_SLIDES = [
   },
   {
     title: "Max's book 📚",
-    emoji: "🦊",
+    emoji: '/images/possessive/fox.png',
     content: "This book belongs to Max. So we say:",
     example: "Max's book",
     bg: "from-orange-100 to-amber-100",
-    who: "Max", item: "book", itemEmoji: "📚", color: "#FFB347",
+    who: "Max", item: "book", itemEmoji: '/images/possessive/stack-of-books.png', color: "#FFB347",
   },
   {
     title: "Remember! 🌟",
@@ -226,7 +226,9 @@ function LearnScreen({ onBack }: { onBack: () => void }) {
         className={`w-full max-w-sm rounded-3xl p-6 bg-gradient-to-br ${s.bg} shadow-xl flex flex-col items-center gap-4`}
         style={{ animation: "slideIn 0.4s ease-out" }}
       >
-        <div className="text-6xl">{s.emoji}</div>
+        {/* <img src={s.emoji} alt={s.title} className="w-16 h-16 object-contain" /> */}
+        <CharImage src={s.emoji} alt={s.title} className="w-16 h-16 object-contain" />
+        
         <h2 className="text-2xl font-black text-center" style={{ fontFamily: "'Fredoka One', cursive", color: "#2D1B69" }}>
           {s.title}
         </h2>
@@ -244,9 +246,9 @@ function LearnScreen({ onBack }: { onBack: () => void }) {
 
         {(s as any).who && (
           <div className="flex items-center gap-4 bg-white rounded-2xl px-6 py-4 shadow w-full justify-center">
-            <div className="text-5xl">{CHARACTERS.find((c) => c.name === (s as any).who)?.emoji}</div>
+            <CharImage src={CHARACTERS.find((c) => c.name === (s as any).who)?.emoji ?? ""} alt={(s as any).who} className="w-14 h-14 object-contain" />
             <div className="text-3xl">+</div>
-            <div className="text-5xl">{(s as any).itemEmoji}</div>
+            <CharImage src={(s as any).itemEmoji} alt={(s as any).item} className="w-14 h-14 object-contain" />
             <div className="text-3xl">=</div>
             <div className="text-xl font-black" style={{ color: (s as any).color, fontFamily: "'Fredoka One', cursive" }}>
               {(s as any).example}
@@ -356,8 +358,8 @@ function QuizScreen({ onBack, onFinish }: { onBack: () => void; onFinish: (s: nu
       >
         <p className="text-base font-bold text-gray-500 uppercase tracking-wide">Whose is it?</p>
         <div className="flex items-center gap-4">
-          <div className="text-6xl" style={{ filter: `drop-shadow(0 4px 8px ${q.subjectColor}66)` }}>
-            {q.subjectEmoji}
+          <div style={{ filter: `drop-shadow(0 4px 8px ${q.subjectColor}66)` }}>
+            <CharImage src={q.subjectEmoji} alt={q.subject} className="w-16 h-16 object-contain" />
           </div>
           <div className="text-4xl">→</div>
           <div className="text-6xl">{q.itemEmoji}</div>
@@ -460,7 +462,7 @@ function BuildScreen({ onBack }: { onBack: () => void }) {
                 border: `3px solid ${charIdx === i ? c.color : "transparent"}`,
               }}
             >
-              <span className="text-3xl">{c.emoji}</span>
+              <CharImage src={c.emoji} alt={c.name} className="text-4xl w-10 h-10 object-contain" />
               <span className="text-xs font-black" style={{ color: c.color, fontFamily: "'Fredoka One', cursive" }}>{c.name}</span>
             </button>
           ))}
@@ -494,7 +496,7 @@ function BuildScreen({ onBack }: { onBack: () => void }) {
         style={{ background: "white", border: `3px solid ${char.color}` }}
       >
         <div className="flex items-center gap-3 text-5xl">
-          <span>{char.emoji}</span>
+          <CharImage src={char.emoji} alt={char.name} className="w-12 h-12 object-contain" />
           <span>+</span>
           <span>{ITEM_EMOJIS[item]}</span>
         </div>
@@ -567,10 +569,11 @@ function ResultsScreen({ score, total, onRetry, onMenu }: { score: number; total
       <div className="flex flex-col gap-3 w-full max-w-xs">
         <button
           onClick={onRetry}
-          className="w-full py-4 rounded-2xl font-black text-white text-xl active:scale-95"
+          className="w-full py-4 rounded-2xl font-black text-white text-xl active:scale-95 flex items-center justify-center gap-3"
           style={{ background: "#FF6B9D", fontFamily: "'Fredoka One', cursive" }}
         >
-          Try Again! 🎯
+          Try Again!
+          <CharImage src="/images/possessive/target.png" alt="Target" className="w-8 h-8 object-contain" />
         </button>
         <button
           onClick={onMenu}
