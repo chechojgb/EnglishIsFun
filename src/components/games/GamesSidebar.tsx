@@ -19,6 +19,7 @@ export default function GamesSidebar() {
     { title: 'Family', icon: <Home size={18} />, games: [{ id: '/family/family-tree', name: 'My Family Tree' }, { id: '/family/who-is-who', name: 'Who is Who?' }]},
     { title: 'Possessive', icon: <Home size={18} />, games: [{ id: '/possessive/who-owns-it', name: 'Who Owns It' }, { id: '/possessive/saxon-starts', name: 'Saxon Starts' }]},
     { title: 'Holidays', icon: <TentTree size={18} />, games: [{ id: '/holiday/StPatrick', name: "St. Patrick's" }, { id: '/holiday/drapydrop', name: "drag & drop" }, { id: '/holiday/spelling', name: "spelling" }]},
+    { title: 'Appearance', icon: <Home size={18} />, games: [{ id: '/appearance/guess-name', name: 'Guess the Name' }]},
     // { title: 'Vocals & Alphabet', icon: <BookOpen size={18} />, games: [{ id: '/alphabet/vocal-islands', name: 'Vocal Islands' }, { id: '/alphabet/abc-adventure', name: 'ABC Adventure' }] },
   ];
 
